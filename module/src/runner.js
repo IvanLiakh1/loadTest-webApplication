@@ -3,11 +3,14 @@ import MetricsCollector from "./metrics.js";
 
 const metrics = new MetricsCollector();
 
-async function startTesting({ url, duration, concurrency, method, body, save }) {
-	metrics.save = save;
-	const endTime = Date.now() + duration * 1000;
+async function startTesting(test) {
+	metrics.save = test.save;
+	const endTime = Date.now() + test.duration * 1000;
 	const workers = [];
-	for (let i = 0; i < concurrency; i++) {
+	const url = test.url;
+	const method = test.method;
+	const body = test.body ? JSON.stringify(test.body) : null;
+	for (let i = 0; i < test.concurrency; i++) {
 		workers.push(
 			(async () => {
 				while (Date.now() < endTime) {
@@ -19,7 +22,7 @@ async function startTesting({ url, duration, concurrency, method, body, save }) 
 
 	await Promise.all(workers);
 
-	metrics.printSummary(duration);
+	metrics.printSummary(test.duration);
 }
 
 export { startTesting };

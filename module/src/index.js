@@ -1,5 +1,7 @@
 import { startTesting } from "./runner.js";
 import readline from "readline";
+import Test from "../models/test.js";
+import { readTestCases, saveTestCase } from "./testCases.js";
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -7,59 +9,78 @@ const rl = readline.createInterface({
 });
 
 function askQuestion(question) {
-	return new Promise((resolve) =>
-		rl.question(question, (answer) => resolve(answer.trim()))
-	);
+	return new Promise((resolve) => rl.question(question, (answer) => resolve(answer.trim())));
 }
-async function main() {
-	console.log("Load Test Web Application");
 
-	const url = await askQuestion("Введіть URL для тестування: ");
-	const duration = await askQuestion(
-		"Введіть тривалість тесту (в секундах): "
-	);
-	const concurrency = await askQuestion(
-		"Введіть кількість одночасних запитів: "
-	);
-	const method = (
-		await askQuestion("Введіть метод (GET, POST, PUT, DELETE): ")
-	).toUpperCase();
-	if (!["GET", "POST", "PUT", "DELETE"].includes(method)) {
-		console.error(
-			"Невірний метод. Будь ласка, використовуйте GET, POST, PUT або DELETE."
-		);
+async function main() {
+	console.log("🚀 Load Test Web Application");
+
+	let test;
+	const testCases = readTestCases();
+
+	if (testCases.length > 0) {
+		console.log("\n📦 Доступні тестові кейси:");
+		testCases.forEach((t, i) => {
+			console.log(`${i + 1}. URL: ${t.url}, Метод: ${t.method}, Тривалість: ${t.duration}s, Конкуренція: ${t.concurrency}`);
+		});
+	}
+
+	const option = await askQuestion("\nВиберіть опцію:\n1. Запустити новий тест\n2. Завантажити тестовий кейс\nВведіть номер опції: ");
+
+	if (option === "2" && testCases.length > 0) {
+		const index = parseInt(await askQuestion("Введіть номер тестового кейсу для завантаження: ")) - 1;
+		if (isNaN(index) || index < 0 || index >= testCases.length) {
+			console.error("❌ Невірний номер тестового кейсу.");
+			rl.close();
+			return;
+		}
+		test = new Test(testCases[index]);
+	} else if (option === "1" || testCases.length === 0) {
+		const url = await askQuestion("Введіть URL для тестування: ");
+		const duration = parseInt(await askQuestion("Введіть тривалість тесту (в секундах): "), 10);
+		const concurrency = parseInt(await askQuestion("Введіть кількість одночасних запитів: "), 10);
+		const method = (await askQuestion("Введіть метод (GET, POST, PUT, DELETE): ")).toUpperCase();
+
+		if (!["GET", "POST", "PUT", "DELETE"].includes(method)) {
+			console.error("❌ Невірний метод. Доступні: GET, POST, PUT, DELETE.");
+			rl.close();
+			return;
+		}
+
+		let body = null;
+		if (["POST", "PUT"].includes(method)) {
+			const raw = await askQuestion("Введіть тіло запиту (JSON): ");
+			try {
+				body = JSON.parse(raw);
+			} catch (error) {
+				console.error("❌ Помилка парсингу JSON:", error.message);
+				rl.close();
+				return;
+			}
+		}
+
+		let save = await askQuestion("Чи зберігати метрики у файл? (y/n): ");
+		save = save.toLowerCase() === "y";
+
+		test = new Test({ url, duration, concurrency, method, body, save });
+	} else {
+		console.error("❌ Невірна опція.");
 		rl.close();
 		return;
 	}
-	let body = null;
-	if (method === "POST" || method === "PUT") {
-		body = await askQuestion("Введіть тіло запиту (JSON): ");
-		try {
-			body = JSON.parse(body);
-		} catch (error) {
-			console.error("Помилка при парсингу JSON:", error.message);
-			body = null;
+
+	await startTesting(test);
+
+	if (option === "1") {
+		let saveTest = await askQuestion("Зберегти цей тестовий кейс? (y/n): ");
+		if (saveTest.toLowerCase() === "y") {
+			saveTestCase(test);
+			console.log("✅ Тестовий кейс збережено.");
 		}
 	}
-	let save = await askQuestion("Чи зберігати метрики у файл? (y/n): ");
-	if (save.toLowerCase() !== "y" && save.toLowerCase() !== "n") {
-		console.error("Невірна відповідь. Будь ласка, введіть 'y' або 'n'.");
-		rl.close();
-		return;
-	}
-	save === "y" ? (save = true) : (save = false);
-
 	rl.close();
-
-	startTesting({
-		url,
-		duration: parseInt(duration, 10),
-		concurrency: parseInt(concurrency, 10),
-		method,
-		body,
-		save,
-	});
 }
+
 main().catch((err) => {
 	console.error("❌ Помилка:", err.message);
 	rl.close();
