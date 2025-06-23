@@ -1,5 +1,5 @@
 import { sendRequest } from "./request.js";
-
+import { printSummary, record } from "./metrics.js";
 async function startTesting({ url, duration, concurrency, method, body}) {
     const endTime = Date.now() + duration * 1000;
     const workers = [];
@@ -7,11 +7,15 @@ async function startTesting({ url, duration, concurrency, method, body}) {
         workers.push(
             (async () => {
                 while (Date.now() < endTime) {
-                    await sendRequest({ url, method, body });
+                    record(await sendRequest({ url, method, body }));
                 }
             })()
         );
     }
+
+    await Promise.all(workers);
+
+    printSummary(duration);
 }
 
 export { startTesting };
