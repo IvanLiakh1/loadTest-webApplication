@@ -1,9 +1,10 @@
 import fs from "fs";
 
 class MetricsCollector {
-	constructor() {
+	constructor(save = true) {
 		this.results = [];
 		this.statusCounts = {};
+		this.save = save;
 	}
 
 	record(result) {
@@ -101,10 +102,15 @@ class MetricsCollector {
 				`Помилки, які виникли під час тестування:\n${errorMessages}`
 			);
 		}
-		this.saveToFile("metrics.json", duration);
+		this.save && this.saveToFile("metrics.json", duration);
 	}
 
 	saveToFile(filename = "metrics.json", duration = 1) {
+		if (fs.existsSync(filename)) {
+			console.warn(
+				`⚠️ Файл "${filename}" вже існує. Він буде перезаписаний.`
+			);
+		}
 		const data = {
 			metrics: this.getMetrics(duration),
 			results: this.results,

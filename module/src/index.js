@@ -41,6 +41,13 @@ async function main() {
 			body = null;
 		}
 	}
+	let save = await askQuestion("Чи зберігати метрики у файл? (y/n): ");
+	if (save.toLowerCase() !== "y" && save.toLowerCase() !== "n") {
+		console.error("Невірна відповідь. Будь ласка, введіть 'y' або 'n'.");
+		rl.close();
+		return;
+	}
+	save === "y" ? (save = true) : (save = false);
 
 	rl.close();
 
@@ -50,6 +57,7 @@ async function main() {
 		concurrency: parseInt(concurrency, 10),
 		method,
 		body,
+		save,
 	});
 }
 main().catch((err) => {
