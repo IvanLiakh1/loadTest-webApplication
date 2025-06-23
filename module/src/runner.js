@@ -3,14 +3,7 @@ import MetricsCollector from "./metrics.js";
 
 const metrics = new MetricsCollector();
 
-async function startTesting({
-	url,
-	duration,
-	concurrency,
-	method,
-	body,
-	save,
-}) {
+async function startTesting({ url, duration, concurrency, method, body, save }) {
 	metrics.save = save;
 	const endTime = Date.now() + duration * 1000;
 	const workers = [];

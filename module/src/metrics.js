@@ -1,5 +1,5 @@
 import fs from "fs";
-
+import { generateReport } from "./generateReport.js";
 class MetricsCollector {
 	constructor(save = true) {
 		this.results = [];
@@ -10,8 +10,7 @@ class MetricsCollector {
 	record(result) {
 		this.results.push(result);
 		if (result.success && typeof result.status === "number") {
-			this.statusCounts[result.status] =
-				(this.statusCounts[result.status] || 0) + 1;
+			this.statusCounts[result.status] = (this.statusCounts[result.status] || 0) + 1;
 		}
 	}
 
@@ -22,35 +21,18 @@ class MetricsCollector {
 		const successfulRequests = this.results.filter((r) => r.success).length;
 		const failedRequests = totalRequests - successfulRequests;
 
-		const rawAvgTime =
-			totalRequests > 0
-				? this.results.reduce((sum, r) => sum + r.time, 0) /
-				  totalRequests
-				: 0;
+		const rawAvgTime = totalRequests > 0 ? this.results.reduce((sum, r) => sum + r.time, 0) / totalRequests : 0;
 		const avgTime = parseFloat(rawAvgTime.toFixed(2));
 
-		const maxTime = totalRequests
-			? Math.max(...this.results.map((r) => r.time))
-			: 0;
-		const minTime = totalRequests
-			? Math.min(...this.results.map((r) => r.time))
-			: 0;
+		const maxTime = totalRequests ? Math.max(...this.results.map((r) => r.time)) : 0;
+		const minTime = totalRequests ? Math.min(...this.results.map((r) => r.time)) : 0;
 		const rps = parseFloat((totalRequests / duration).toFixed(2));
 
 		const stddev = totalRequests
-			? parseFloat(
-					Math.sqrt(
-						this.results.reduce(
-							(sum, r) => sum + Math.pow(r.time - rawAvgTime, 2),
-							0
-						) / totalRequests
-					).toFixed(2)
-			  )
+			? parseFloat(Math.sqrt(this.results.reduce((sum, r) => sum + Math.pow(r.time - rawAvgTime, 2), 0) / totalRequests).toFixed(2))
 			: 0;
 
-		const sorted = [...this.results.map((r) => r.time)].sort(
-			(a, b) => a - b
-		);
+		const sorted = [...this.results.map((r) => r.time)].sort((a, b) => a - b);
 		const p95 = sorted[Math.floor(0.95 * sorted.length)] || 0;
 		const p99 = sorted[Math.floor(0.99 * sorted.length)] || 0;
 
@@ -98,18 +80,14 @@ class MetricsCollector {
 			.join("\n");
 
 		if (errorMessages) {
-			console.log(
-				`Помилки, які виникли під час тестування:\n${errorMessages}`
-			);
+			console.log(`Помилки, які виникли під час тестування:\n${errorMessages}`);
 		}
 		this.save && this.saveToFile("metrics.json", duration);
 	}
 
 	saveToFile(filename = "metrics.json", duration = 1) {
 		if (fs.existsSync(filename)) {
-			console.warn(
-				`⚠️ Файл "${filename}" вже існує. Він буде перезаписаний.`
-			);
+			console.warn(`⚠️ Файл "${filename}" вже існує. Він буде перезаписаний.`);
 		}
 		const data = {
 			metrics: this.getMetrics(duration),
@@ -117,6 +95,7 @@ class MetricsCollector {
 		};
 		fs.writeFileSync(filename, JSON.stringify(data, null, 2), "utf-8");
 		console.log(`📁 Метрики збережено у файл "${filename}"`);
+		generateReport(data);
 	}
 
 	loadFromFile(filename = "metrics.json") {
