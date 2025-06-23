@@ -28,6 +28,13 @@ async function main() {
         }
     }
     rl.close();
+    startTesting({
+        url,
+        duration: parseInt(duration, 10),
+        concurrency: parseInt(concurrency, 10),
+        method,
+        body
+    });
 }
 main().catch(err => {
   console.error('❌ Помилка:', err.message);
