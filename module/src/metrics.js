@@ -9,7 +9,7 @@ class MetricsCollector {
 
 	record(result) {
 		this.results.push(result);
-		if (result.success && typeof result.status === "number") {
+		if (typeof result.status === "number") {
 			this.statusCounts[result.status] = (this.statusCounts[result.status] || 0) + 1;
 		}
 	}
@@ -40,6 +40,7 @@ class MetricsCollector {
 			requestUrl: this.results[0]?.requestUrl || null,
 			requestBody: this.results[0]?.requestBody || null,
 			requestMethod: this.results[0]?.requestMethod || null,
+			requestToken: this.results[0]?.requestToken || null,
 			totalRequests,
 			successfulRequests,
 			failedRequests,
@@ -74,10 +75,7 @@ class MetricsCollector {
 			console.log(`Код ${code}: ${count}`);
 		}
 
-		const errorMessages = this.results
-			.filter((r) => !r.success && r.error)
-			.map((r) => r.error)
-			.join("\n");
+		const errorMessages = [...new Set(this.results.filter((r) => !r.success && r.error).map((r) => r.error))];
 
 		if (errorMessages) {
 			console.log(`Помилки, які виникли під час тестування:\n${errorMessages}`);
@@ -86,28 +84,21 @@ class MetricsCollector {
 	}
 
 	saveToFile(filename = "metrics.json", duration = 1) {
-		if (fs.existsSync(filename)) {
+		const folderPath = "../results";
+		const fullPath = `${folderPath}/${filename}`;
+		if (!fs.existsSync(folderPath)) {
+			fs.mkdirSync(folderPath, { recursive: true });
+		}
+		if (fs.existsSync(fullPath)) {
 			console.warn(`⚠️ Файл "${filename}" вже існує. Він буде перезаписаний.`);
 		}
 		const data = {
 			metrics: this.getMetrics(duration),
 			results: this.results,
 		};
-		fs.writeFileSync(filename, JSON.stringify(data, null, 2), "utf-8");
+		fs.writeFileSync(fullPath, JSON.stringify(data, null, 2), "utf-8");
 		console.log(`📁 Метрики збережено у файл "${filename}"`);
 		generateReport(data);
-	}
-
-	loadFromFile(filename = "metrics.json") {
-		if (fs.existsSync(filename)) {
-			const raw = fs.readFileSync(filename, "utf-8");
-			const data = JSON.parse(raw);
-			this.results = data.results || [];
-			this.statusCounts = data.metrics?.statusCounts || {};
-			console.log(`📂 Метрики завантажено з файлу "${filename}"`);
-		} else {
-			console.warn(`⚠️ Файл "${filename}" не знайдено`);
-		}
 	}
 }
 

@@ -10,11 +10,12 @@ async function startTesting(test) {
 	const url = test.url;
 	const method = test.method;
 	const body = test.body ? JSON.stringify(test.body) : null;
+	const token = test.token;
 	for (let i = 0; i < test.concurrency; i++) {
 		workers.push(
 			(async () => {
 				while (Date.now() < endTime) {
-					metrics.record(await sendRequest({ url, method, body }));
+					metrics.record(await sendRequest({ url, method, body, token }));
 				}
 			})()
 		);

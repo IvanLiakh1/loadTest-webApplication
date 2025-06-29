@@ -1,16 +1,22 @@
 import axios from "axios";
 
-async function sendRequest({ url, method, body }) {
+async function sendRequest({ url, method, body, token }) {
 	const start = Date.now();
 	try {
-		const response = await axios({
-			method: method,
-			url: url,
-			data: body,
+		const config = {
+			method,
+			url,
 			headers: {
 				"Content-Type": "application/json",
+				...(token && { Authorization: `Bearer ${token}` }),
 			},
-		});
+		};
+
+		if (body !== null && body !== undefined) {
+			config.data = body;
+		}
+
+		const response = await axios(config);
 		return {
 			success: true,
 			status: response.status,
@@ -23,7 +29,13 @@ async function sendRequest({ url, method, body }) {
 	} catch (error) {
 		return {
 			success: false,
-			error: error.message,
+			requestBody: body,
+			requestMethod: method,
+			requestUrl: url,
+			requestToken: token,
+			status: error.response?.status || null,
+			statusText: error.response?.statusText || null,
+			error: error.response?.data?.message || error.message,
 			time: Date.now() - start,
 		};
 	}

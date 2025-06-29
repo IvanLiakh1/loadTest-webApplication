@@ -1,6 +1,6 @@
 import fs from "fs";
 import open from "open";
-export function generateReport(data, filename = "report.html") {
+export function generateReport(data, filename = "../results/report.html") {
 	const m = data.metrics;
 	const html = `<!DOCTYPE html>
 <html lang="uk">
@@ -14,6 +14,9 @@ export function generateReport(data, filename = "report.html") {
   <main class="container">
     <h1>Звіт про навантаження</h1>
     <table>
+          <tr><th>URL запиту</th><td>${m.requestUrl}</td></tr>
+          <tr><th>HTTP метод запиту</th><td>${m.requestMethod}</td></tr>
+          <tr><th>Тіло запиту</th><td>${m.requestBody}</td></tr>
           <tr><th>Запитів</th><td>${m.totalRequests}</td></tr>
           <tr><th>Успішні</th><td>${m.successfulRequests}</td></tr>
           <tr><th>Неуспішні</th><td>${m.failedRequests}</td></tr>
@@ -40,13 +43,11 @@ export function generateReport(data, filename = "report.html") {
 
     <section id="errors">
       <h2>Помилки</h2>
-      <pre style="color: red;">${
-			data.results
-				.filter((r) => !r.success && r.error)
-				.map((r) => r.error)
-				.join("\n") || "Немає"
-		}</pre>
+      <pre style="color: red; font-size: 16px">${
+			[...new Set(data.results.filter((r) => !r.success && r.error).map((r) => r.error))].join("\n") || "Немає"
+		} </pre>
     </section>
+    
   </main>
 </body>
 </html>`;
